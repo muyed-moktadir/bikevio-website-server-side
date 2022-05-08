@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 require("dotenv").config();
-const ObjectId= require('mongodb').ObjectId;
+const ObjectId = require("mongodb").ObjectId;
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const port = process.env.PORT || 5000;
 
@@ -17,13 +17,13 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
-
 // TODO:CRUD Operation:
 async function run() {
   try {
     await client.connect();
     const bikeCollection = client.db("bikevio").collection("inventory");
-    
+
+    // TODO:get All Bike
     app.get("/inventory", async (req, res) => {
       const query = {};
       const cursor = bikeCollection.find(query);
@@ -31,14 +31,34 @@ async function run() {
       res.send(users);
     });
 
-       // TODO: get a user (follow doc find a doc):
-       app.get('/inventory/:id',async(req,res)=>{
-        const id = req.params.id;
-        const query = {_id:ObjectId(id)};
-        const result = await bikeCollection.findOne(query);
-        res.send(result);
-    })
+    // TODO: get a bike:
+    app.get("/inventory/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await bikeCollection.findOne(query);
+      res.send(result);
+    });
 
+    //  TODO:Update a quantity:
+    app.put("/inventory/:id", async (req, res) => {
+      const id = req.params.id;
+      const ID = id.trim();
+      ObjectId(ID);
+      const updatedQuantity = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          quantity: updatedQuantity.newQuantity,
+        },
+      };
+      const result = await bikeCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    });
   } finally {
     // await client.close();
   }

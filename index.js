@@ -27,7 +27,8 @@ async function run() {
 
     // TODO:get All Bike
     app.get("/inventory", async (req, res) => {
-      const query = {};
+      const query = {email: email};
+      console.log(query)
       const cursor = bikeCollection.find(query);
       const bikes = await cursor.toArray();
       res.send(bikes);

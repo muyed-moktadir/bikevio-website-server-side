@@ -23,6 +23,7 @@ async function run() {
     await client.connect();
     const bikeCollection = client.db("bikevio").collection("inventory");
 
+
     // TODO:get All Bike
     app.get("/inventory", async (req, res) => {
       const query = {};
@@ -30,6 +31,7 @@ async function run() {
       const users = await cursor.toArray();
       res.send(users);
     });
+
 
     // TODO: get a bike:
     app.get("/inventory/:id", async (req, res) => {
@@ -39,11 +41,25 @@ async function run() {
       res.send(result);
     });
 
+    //TODO: delate a bike
+    app.delete('/inventory/:id',async(req,res)=>{
+      const id = req.params.id;
+      console.log(id);
+      const query = {_id:ObjectId(id)};
+      const result = await bikeCollection.deleteOne(query);
+      res.send(result);
+  })
+      // TODO: Add a new bike 
+      app.post('/inventory',async (req,res)=>{
+        const newBike = req.body;
+        console.log('adding a new user',newBike);
+        const result = await bikeCollection.insertOne(newBike)
+        res.send(result);
+    })
+
     //  TODO:Update a quantity:
     app.put("/inventory/:id", async (req, res) => {
       const id = req.params.id;
-      const ID = id.trim();
-      ObjectId(ID);
       const updatedQuantity = req.body;
       const filter = { _id: ObjectId(id) };
       const options = { upsert: true };
@@ -59,6 +75,7 @@ async function run() {
       );
       res.send(result);
     });
+    
   } finally {
     // await client.close();
   }

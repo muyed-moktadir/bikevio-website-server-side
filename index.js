@@ -22,12 +22,20 @@ async function run() {
   try {
     await client.connect();
     const bikeCollection = client.db("bikevio").collection("inventory");
+    const newCollection = client.db("bikevio").collection("newItem");
 
 
     // TODO:get All Bike
     app.get("/inventory", async (req, res) => {
       const query = {};
       const cursor = bikeCollection.find(query);
+      const bikes = await cursor.toArray();
+      res.send(bikes);
+    });
+    // TODO:get All newBike
+    app.get("/newItem", async (req, res) => {
+      const query = {};
+      const cursor = newCollection.find(query);
       const users = await cursor.toArray();
       res.send(users);
     });
@@ -50,10 +58,10 @@ async function run() {
       res.send(result);
   })
       // TODO: Add a new bike 
-      app.post('/inventory',async (req,res)=>{
+      app.post('/newItem',async (req,res)=>{
         const newBike = req.body;
         console.log('adding a new user',newBike);
-        const result = await bikeCollection.insertOne(newBike)
+        const result = await newCollection.insertOne(newBike)
         res.send(result);
     })
 

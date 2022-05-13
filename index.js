@@ -3,12 +3,33 @@ const app = express();
 const cors = require("cors");
 require("dotenv").config();
 const ObjectId = require("mongodb").ObjectId;
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const port = process.env.PORT || 5000;
 
 //TODO: add middleware
 app.use(cors());
 app.use(express.json());
+
+
+
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "Unauthorized access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).send({ message: "forbidden access" });
+    }
+    console.dir("decoded email", decoded);
+    req.decoded = decoded;
+    next();
+  });
+}
+
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.SECRET_KEY}@cluster0.rkyae.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
@@ -17,29 +38,66 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+
+
 // TODO:CRUD Operation:
 async function run() {
   try {
     await client.connect();
     const bikeCollection = client.db("bikevio").collection("inventory");
-    const newCollection = client.db("bikevio").collection("newItem");
+    // const newCollection = client.db("bikevio").collection("newItem");
+
+
+
+    // TODO:Auth
+    app.post("/login", async (req, res) => {
+      const user = req.body;
+      console.dir(user);
+      const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1d",
+      });
+      res.send({ accessToken });
+    });
+
 
 
     // TODO:get All Bike
     app.get("/inventory", async (req, res) => {
       const query = {};
-      console.log(query)
+      console.dir(query);
       const cursor = bikeCollection.find(query);
       const bikes = await cursor.toArray();
       res.send(bikes);
     });
-    // TODO:get All newBike
-    app.get("/newItem", async (req, res) => {
-      const query = {};
-      const cursor = newCollection.find(query);
-      const users = await cursor.toArray();
-      res.send(users);
+
+
+
+    // TODO:get All newBike ..  verifyJWT,
+    app.get("/inventory",verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      console.dir("decodedemail", decodedEmail);
+      const authHeader = req.headers.authorization;
+      console.dir(authHeader);
+      const email = req.query.email;
+      console.dir(email);
+      if (email === decodedEmail) {
+        const query = { email: email };
+        const cursor = bikeCollection.filter(query);
+        const bikes = await cursor.toArray();
+        res.send(bikes);
+      } else {
+        res.status(403).send({ message: "forbidden access" });
+      }
     });
+
+      // TODO: Add a new bike
+      app.post("/inventory", async (req, res) => {
+        const newBike = req.body;
+        console.log("adding a new user", newBike);
+        const result = await bikeCollection.insertOne(newBike);
+        res.send(result);
+      });
+
 
 
     // TODO: get a bike:
@@ -50,21 +108,19 @@ async function run() {
       res.send(result);
     });
 
+    
+     
     //TODO: delate a bike
-    app.delete('/inventory/:id',async(req,res)=>{
+    app.delete("/inventory/:id", async (req, res) => {
       const id = req.params.id;
       console.log(id);
-      const query = {_id:ObjectId(id)};
+      const query = { _id: ObjectId(id) };
       const result = await bikeCollection.deleteOne(query);
       res.send(result);
-  })
-      // TODO: Add a new bike 
-      app.post('/newItem',async (req,res)=>{
-        const newBike = req.body;
-        console.log('adding a new user',newBike);
-        const result = await newCollection.insertOne(newBike)
-        res.send(result);
-    })
+    });
+
+    
+  
 
     //  TODO:Update a quantity:
     app.put("/inventory/:id", async (req, res) => {
@@ -84,7 +140,6 @@ async function run() {
       );
       res.send(result);
     });
-    
   } finally {
     // await client.close();
   }

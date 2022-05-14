@@ -11,8 +11,6 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-
-
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -29,8 +27,7 @@ function verifyJWT(req, res, next) {
   });
 }
 
-
-
+// TODO:mongodb
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.SECRET_KEY}@cluster0.rkyae.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -38,21 +35,17 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
-
-
 // TODO:CRUD Operation:
 async function run() {
   try {
     await client.connect();
     const bikeCollection = client.db("bikevio").collection("inventory");
-    // const newCollection = client.db("bikevio").collection("newItem");
-
 
 
     // TODO:Auth
     app.post("/login", async (req, res) => {
       const user = req.body;
-      console.dir(user);
+      // console.dir(user);
       const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "1d",
       });
@@ -60,44 +53,13 @@ async function run() {
     });
 
 
-
     // TODO:get All Bike
     app.get("/inventory", async (req, res) => {
       const query = {};
-      console.dir(query);
       const cursor = bikeCollection.find(query);
       const bikes = await cursor.toArray();
       res.send(bikes);
     });
-
-
-
-    // TODO:get All newBike ..  verifyJWT,
-    app.get("/inventory",verifyJWT, async (req, res) => {
-      const decodedEmail = req.decoded.email;
-      console.dir("decodedemail", decodedEmail);
-      const authHeader = req.headers.authorization;
-      console.dir(authHeader);
-      const email = req.query.email;
-      console.dir(email);
-      if (email === decodedEmail) {
-        const query = { email: email };
-        const cursor = bikeCollection.filter(query);
-        const bikes = await cursor.toArray();
-        res.send(bikes);
-      } else {
-        res.status(403).send({ message: "forbidden access" });
-      }
-    });
-
-      // TODO: Add a new bike
-      app.post("/inventory", async (req, res) => {
-        const newBike = req.body;
-        console.log("adding a new user", newBike);
-        const result = await bikeCollection.insertOne(newBike);
-        res.send(result);
-      });
-
 
 
     // TODO: get a bike:
@@ -108,8 +70,7 @@ async function run() {
       res.send(result);
     });
 
-    
-     
+
     //TODO: delate a bike
     app.delete("/inventory/:id", async (req, res) => {
       const id = req.params.id;
@@ -119,8 +80,7 @@ async function run() {
       res.send(result);
     });
 
-    
-  
+
 
     //  TODO:Update a quantity:
     app.put("/inventory/:id", async (req, res) => {
@@ -139,6 +99,36 @@ async function run() {
         options
       );
       res.send(result);
+    });
+
+
+
+    // TODO: Add a new bike
+    app.post("/inventory", async (req, res) => {
+      const newBike = req.body;
+      console.log("adding a new user", newBike);
+      const result = await bikeCollection.insertOne(newBike);
+      res.send(result);
+    });
+
+
+
+    // TODO:get All newBike ..  verifyJWT,
+    app.get("/inventory", async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      console.log("decoded email", decodedEmail);
+      const authHeader = req.headers.authorization;
+      console.log(authHeader);
+      const email = req.query.email;
+      console.dir(email);
+      if (email === decodedEmail) {
+        const query = { email: email };
+        const cursor = bikeCollection.filter(query);
+        const bikes = await cursor.toArray();
+        res.send(bikes);
+      } else {
+        res.status(403).send({ message: "forbidden access" });
+      }
     });
   } finally {
     // await client.close();
